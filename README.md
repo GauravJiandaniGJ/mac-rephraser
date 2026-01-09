@@ -1,4 +1,4 @@
-# Rephraser ✨
+# Rephrase ✨
 
 A Mac-wide text rephrasing tool powered by OpenAI. Select text anywhere, press **Ctrl+Option+R**, get it rephrased with proper grammar.
 
@@ -58,7 +58,7 @@ mkdir -p ~/Projects/rephrase
 cd ~/Projects/rephrase
 
 # Copy all project files here (or clone from repo)
-# You should have: rephrase.py, config.py, api.py, clipboard_helper.py,
+# You should have: rephrase.py, config.py, api.py, clipboard_helper.py, 
 #                  keychain_helper.py, logger.py, requirements.txt
 
 # Set Python 3.11 for THIS project only
@@ -354,16 +354,16 @@ rm ~/Library/LaunchAgents/com.rephrase.app.plist
 
 ## FAQ
 
-**Q: Does this work with other AI providers?**
+**Q: Does this work with other AI providers?**  
 A: Currently only OpenAI. Adding Claude/other providers is possible with code changes.
 
-**Q: Is my text sent to OpenAI?**
+**Q: Is my text sent to OpenAI?**  
 A: Yes, selected text is sent to OpenAI's API for processing. Don't use with sensitive/confidential data if that's a concern.
 
-**Q: Can I change the hotkey?**
+**Q: Can I change the hotkey?**  
 A: Yes, edit `rephrase.py` and modify the key detection in `start_hotkey_listener()`.
 
-**Q: Why Ctrl+Option+R instead of Cmd+Option+R?**
+**Q: Why Ctrl+Option+R instead of Cmd+Option+R?**  
 A: Cmd+Option+R produces the `®` character on Mac, which causes detection issues.
 
 ---

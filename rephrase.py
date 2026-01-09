@@ -22,21 +22,21 @@ from logger import log
 def notify(title: str, message: str = "", sound: bool = False):
     """Send macOS notification."""
     log.debug(f"Notification: {title} - {message}")
-
+    
     # Escape quotes in message
     message = message.replace('"', '\\"').replace("'", "\\'")
     title = title.replace('"', '\\"').replace("'", "\\'")
-
+    
     script = f'display notification "{message}" with title "{title}"'
     if sound:
         script += ' sound name "default"'
-
+    
     result = subprocess.run(
-        ["osascript", "-e", script],
-        capture_output=True,
+        ["osascript", "-e", script], 
+        capture_output=True, 
         text=True
     )
-
+    
     if result.returncode != 0:
         log.error(f"Notification failed: {result.stderr}")
 
@@ -45,22 +45,22 @@ class RephraseApp(rumps.App):
     def __init__(self):
         log.info("Starting Rephrase app...")
         super().__init__(
-            "✨",
-            title="✨",
+            "R✎",
+            title="R✎",
             quit_button=None,  # We'll add our own
         )
-
+        
         self.is_processing = False
         self.setup_menu()
         self.start_hotkey_listener()
         log.info("App initialized. Hotkey: Ctrl+Option+R")
-
+    
     def setup_menu(self):
         """Build the menubar menu."""
         # Status item
         self.status_item = rumps.MenuItem("Status: Ready")
         self.status_item.set_callback(None)  # Not clickable
-
+        
         # Model submenu
         self.model_menu = rumps.MenuItem("Model")
         current_model = get_model()
@@ -72,7 +72,7 @@ class RephraseApp(rumps.App):
             if model_key == current_model:
                 item.state = 1  # Checkmark
             self.model_menu.add(item)
-
+        
         # Tone submenu
         self.tone_menu = rumps.MenuItem("Default Tone")
         current_tone = get_tone()
@@ -84,13 +84,13 @@ class RephraseApp(rumps.App):
             if tone_key == current_tone:
                 item.state = 1  # Checkmark
             self.tone_menu.add(item)
-
+        
         # API Key status
         api_key = get_api_key()
         api_status = "API Key: ✓ Set" if api_key else "API Key: ✗ Not set"
         self.api_status_item = rumps.MenuItem(api_status)
         self.api_status_item.set_callback(None)
-
+        
         # Build menu
         self.menu = [
             self.status_item,
@@ -107,7 +107,7 @@ class RephraseApp(rumps.App):
             None,  # Separator
             rumps.MenuItem("Quit", callback=self.quit_app),
         ]
-
+    
     def select_model(self, model_key: str, sender: rumps.MenuItem):
         """Handle model selection."""
         log.info(f"Model changed to: {model_key}")
@@ -116,7 +116,7 @@ class RephraseApp(rumps.App):
         for item in self.model_menu.values():
             item.state = 0
         sender.state = 1
-
+    
     def select_tone(self, tone_key: str, sender: rumps.MenuItem):
         """Handle tone selection."""
         log.info(f"Tone changed to: {tone_key}")
@@ -125,7 +125,7 @@ class RephraseApp(rumps.App):
         for item in self.tone_menu.values():
             item.state = 0
         sender.state = 1
-
+    
     def prompt_api_key(self, _):
         """Show dialog to enter API key."""
         log.debug("Prompting for API key...")
@@ -153,13 +153,13 @@ class RephraseApp(rumps.App):
                 log.debug("API key prompt cancelled")
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             log.error(f"API key prompt failed: {e}")
-
+    
     def test_rephrase(self, _):
         """Test the rephrase function with sample text."""
         test_text = "i want to check if this is working properly or not"
         log.info(f"Running test rephrase with: {test_text}")
         notify("Rephrase", "Testing with sample text...")
-
+        
         def run_test():
             try:
                 result = rephrase_text(test_text)
@@ -168,19 +168,19 @@ class RephraseApp(rumps.App):
             except RephraseError as e:
                 log.error(f"Test failed: {e}")
                 notify("Test Failed ✗", str(e))
-
+        
         threading.Thread(target=run_test, daemon=True).start()
-
+    
     def open_logs(self, _):
         """Open logs folder in Finder."""
         log_dir = str(Path.home() / ".config" / "rephrase" / "logs")
         subprocess.run(["open", log_dir])
-
+    
     def quit_app(self, _):
         """Quit the application."""
         log.info("Quitting app...")
         rumps.quit_application()
-
+    
     def start_hotkey_listener(self):
         """Start global hotkey listener in background thread."""
         def on_hotkey():
@@ -193,19 +193,19 @@ class RephraseApp(rumps.App):
                 threading.Thread(target=self.do_rephrase, daemon=True).start()
             else:
                 log.debug("Already processing, ignoring hotkey")
-
+        
         # Track pressed keys manually for debugging
         self.pressed_keys = set()
-
+        
         def on_press(key):
             try:
                 key_name = key.char if hasattr(key, 'char') and key.char else str(key)
             except:
                 key_name = str(key)
-
+            
             self.pressed_keys.add(key_name)
             log.debug(f"Key pressed: {key_name} | Currently held: {self.pressed_keys}")
-
+            
             # Check for our combo: Ctrl + Option + R
             held = self.pressed_keys
             if ('Key.ctrl' in held or 'Key.ctrl_r' in held) and \
@@ -213,47 +213,47 @@ class RephraseApp(rumps.App):
                ('r' in held or '®' in held):
                 log.info("Hotkey Ctrl+Option+R detected!")
                 on_hotkey()
-
+        
         def on_release(key):
             try:
                 key_name = key.char if hasattr(key, 'char') and key.char else str(key)
             except:
                 key_name = str(key)
-
+            
             self.pressed_keys.discard(key_name)
-
+        
         self.listener = keyboard.Listener(on_press=on_press, on_release=on_release)
         self.listener.start()
         log.debug("Hotkey listener started")
-
+    
     def do_rephrase(self):
         """Main rephrase workflow."""
         if self.is_processing:
             return
-
+        
         self.is_processing = True
         self.status_item.title = "Status: Working..."
-        self.title = "⏳"
+        self.title = "R⏳"
         log.info("Starting rephrase workflow...")
-
+        
         try:
             # Step 1: Get selected text
             log.debug("Getting selected text...")
             selected_text = get_selected_text()
-
+            
             if not selected_text:
                 log.warning("No text selected")
                 notify("Rephrase", "No text selected")
                 return
-
+            
             log.info(f"Selected text ({len(selected_text)} chars): {selected_text[:50]}...")
-
+            
             # Step 2: Call API
             log.debug("Calling OpenAI API...")
             notify("Rephrase", "Rephrasing...")
             rephrased = rephrase_text(selected_text)
             log.info(f"Rephrased ({len(rephrased)} chars): {rephrased[:50]}...")
-
+            
             # Step 3: Paste result
             log.debug("Pasting result...")
             if paste_text(rephrased):
@@ -262,19 +262,19 @@ class RephraseApp(rumps.App):
             else:
                 log.warning("Paste failed, text is in clipboard")
                 notify("Rephrase", "Couldn't paste. Text copied to clipboard.")
-
+        
         except RephraseError as e:
             log.error(f"Rephrase error: {e}")
             notify("Rephrase ✗", str(e))
-
+        
         except Exception as e:
             log.exception(f"Unexpected error: {e}")
             notify("Rephrase ✗", f"Error: {str(e)[:50]}")
-
+        
         finally:
             self.is_processing = False
             self.status_item.title = "Status: Ready"
-            self.title = "✨"
+            self.title = "R✎"
             log.debug("Rephrase workflow completed")
 
 
