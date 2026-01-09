@@ -15,7 +15,7 @@ Every Slack message to a client used to cost me **6 operations**:
 5. Copy the result
 6. Paste back in Slack, tweak, send
 
-**20 messages/day × 6 ops × 30 days = 3,600 wasted operations/month**
+**50 messages/day × 6 ops × 30 days = 9,000 wasted operations/month**
 
 Now? I write, select, press `Ctrl+Option+R`, done.
 
@@ -36,7 +36,7 @@ Now? I write, select, press `Ctrl+Option+R`, done.
 ### Prerequisites
 
 - macOS (Monterey or later)
-- Python 3.9+ 
+- Python 3.9+
 - OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
 
 ### Installation
@@ -204,7 +204,7 @@ MIT © [Gaurav Jiandani](https://gauravjiandani.com)
 
 ## Author
 
-**Gaurav Jiandani**  
+**Gaurav Jiandani**
 - Website: [gauravjiandani.com](https://gauravjiandani.com)
 - GitHub: [@gauravjiandani](https://github.com/gauravjiandani)
 
