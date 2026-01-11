@@ -49,6 +49,13 @@ def recreate_client() -> bool:
     return True
 
 
+def reset_client() -> None:
+    """Reset the cached client. Used for testing."""
+    global _client, _client_api_key
+    _client = None
+    _client_api_key = None
+
+
 def rephrase_text(text: str) -> str:
     """
     Rephrase the given text using OpenAI API.
