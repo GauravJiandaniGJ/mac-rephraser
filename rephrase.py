@@ -17,6 +17,7 @@ from clipboard_helper import get_selected_text, paste_text
 from config import MODELS, TONES, get_model, get_tone, set_model, set_tone
 from keychain_helper import get_api_key, set_api_key
 from logger import log
+from usage_stats import get_stats_summary, record_rephrase
 
 
 def notify(title: str, message: str = "", sound: bool = False):
@@ -90,10 +91,15 @@ class RephraseApp(rumps.App):
         api_status = "API Key: ✓ Set" if api_key else "API Key: ✗ Not set"
         self.api_status_item = rumps.MenuItem(api_status)
         self.api_status_item.set_callback(None)
-        
+
+        # Usage stats
+        self.usage_item = rumps.MenuItem(self._get_usage_text())
+        self.usage_item.set_callback(None)
+
         # Build menu
         self.menu = [
             self.status_item,
+            self.usage_item,
             None,  # Separator
             self.model_menu,
             self.tone_menu,
@@ -108,6 +114,15 @@ class RephraseApp(rumps.App):
             rumps.MenuItem("Quit", callback=self.quit_app),
         ]
     
+    def _get_usage_text(self) -> str:
+        """Get formatted usage statistics text for menu."""
+        stats = get_stats_summary()
+        return f"Today: {stats['today']} | 30 days: {stats['total_30_days']}"
+
+    def _update_usage_display(self):
+        """Update the usage stats menu item."""
+        self.usage_item.title = self._get_usage_text()
+
     def select_model(self, model_key: str, sender: rumps.MenuItem):
         """Handle model selection."""
         log.info(f"Model changed to: {model_key}")
@@ -257,6 +272,8 @@ class RephraseApp(rumps.App):
             log.debug("Pasting result...")
             if paste_text(rephrased):
                 log.info("Text replaced successfully")
+                record_rephrase()
+                self._update_usage_display()
                 notify("Rephrase ✓", "Text replaced!")
             else:
                 log.warning("Paste failed, text is in clipboard")
