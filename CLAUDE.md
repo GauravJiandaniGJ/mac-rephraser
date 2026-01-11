@@ -6,7 +6,7 @@
 
 1. **ALWAYS run tests before committing:**
    ```bash
-   source venv/bin/activate && pytest test_rephraser.py -v
+   source venv/bin/activate && pytest tests/ -v
    ```
    - All tests must pass before any `git commit`
    - If tests fail, fix the issues first
@@ -47,6 +47,14 @@ mac-rephraser/
 ├── requirements.txt     # Dependencies
 ├── README.md            # User documentation
 ├── LICENSE              # MIT License
+├── tests/               # Test suite
+│   ├── conftest.py      # Shared fixtures
+│   ├── test_api.py      # API tests
+│   ├── test_clipboard.py # Clipboard tests
+│   ├── test_config.py   # Config tests
+│   ├── test_integration.py # Integration tests
+│   ├── test_keychain.py # Keychain tests
+│   └── test_logger.py   # Logger tests
 └── assets/
     └── demo.gif         # Demo for README
 ```

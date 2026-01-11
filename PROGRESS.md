@@ -178,42 +178,47 @@ All tests passing as of last commit.
 
 ---
 
-## TODO: Future Tasks
+## Completed: Test Refactoring
 
-### Refactor Test Structure
-**Priority:** Medium
-**Status:** Pending
+### 9. Refactor Test Structure
+**Commit:** `(pending)`
+**Status:** Completed
 
-Move tests into a dedicated directory and split into separate files for better organization and maintainability.
+Moved tests into a dedicated directory and split into separate files for better organization.
 
-**Current structure:**
-```
-rephraser/
-├── test_rephraser.py    # All 37 tests in one file
-```
-
-**Target structure:**
+**New structure:**
 ```
 rephraser/
 ├── tests/
 │   ├── __init__.py
-│   ├── conftest.py           # Shared fixtures
-│   ├── test_config.py        # TestConfig class
-│   ├── test_api.py           # TestAPI class
-│   ├── test_keychain.py      # TestKeychain class
-│   ├── test_clipboard.py     # TestClipboard + TestClipboardBugs classes
-│   ├── test_logger.py        # TestLogger class
-│   └── test_integration.py   # TestIntegration class
+│   ├── conftest.py           # Shared fixtures (reset_api_client, mock_subprocess, temp_config, etc.)
+│   ├── test_config.py        # 12 tests - configuration management
+│   ├── test_api.py           # 6 tests - OpenAI API integration
+│   ├── test_keychain.py      # 4 tests - API key storage
+│   ├── test_clipboard.py     # 11 tests - clipboard operations + bug tests
+│   ├── test_logger.py        # 2 tests - logging configuration
+│   └── test_integration.py   # 2 tests - end-to-end flow
 ```
 
-**Steps:**
-1. Create `tests/` directory
-2. Create `conftest.py` with shared fixtures (mock_subprocess, reset_api_client)
-3. Move each test class to its own file
-4. Update imports in each test file
-5. Remove old `test_rephraser.py`
-6. Update pytest command in CLAUDE.md if needed
-7. Run tests to verify everything works
+**Changes made:**
+1. Created `tests/` directory with `__init__.py`
+2. Created `conftest.py` with shared fixtures:
+   - `reset_api_client` - resets OpenAI client cache
+   - `mock_subprocess` - mocks subprocess for clipboard tests
+   - `temp_config` - temporary config directory
+   - `mock_openai_response` - mock API response
+   - `mock_keychain` - mock keychain operations
+3. Split tests into 6 separate files by module
+4. Removed old `test_rephraser.py`
+5. Updated CLAUDE.md with new pytest command: `pytest tests/ -v`
+
+**Test results:** 37 passed in ~1.3s
+
+---
+
+## TODO: Future Tasks
+
+No pending tasks at this time.
 
 ---
 
