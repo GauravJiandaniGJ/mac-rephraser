@@ -202,10 +202,9 @@ class RephraseApp(rumps.App):
                 key_name = key.char if hasattr(key, 'char') and key.char else str(key)
             except:
                 key_name = str(key)
-            
+
             self.pressed_keys.add(key_name)
-            log.debug(f"Key pressed: {key_name} | Currently held: {self.pressed_keys}")
-            
+
             # Check for our combo: Ctrl + Option + R
             held = self.pressed_keys
             if ('Key.ctrl' in held or 'Key.ctrl_r' in held) and \
