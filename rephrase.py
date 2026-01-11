@@ -108,6 +108,7 @@ class RephraseApp(rumps.App):
             rumps.MenuItem("Set API Key...", callback=self.prompt_api_key),
             rumps.MenuItem("Recreate OpenAI Client", callback=self.recreate_openai_client),
             rumps.MenuItem("Reload Config", callback=self.reload_config_file),
+            rumps.MenuItem("Refresh API Key Status", callback=self.refresh_api_key_status),
             None,  # Separator
             rumps.MenuItem("Test Rephrase", callback=self.test_rephrase),
             rumps.MenuItem("View Logs", callback=self.open_logs),
@@ -195,6 +196,17 @@ class RephraseApp(rumps.App):
             item.state = 1 if tone_key == current_tone else 0
 
         notify("Rephrase", "Config reloaded")
+
+    def refresh_api_key_status(self, _):
+        """Re-check keychain for API key and update status display."""
+        log.info("User requested API key status refresh")
+        api_key = get_api_key()
+        if api_key:
+            self.api_status_item.title = "API Key: ✓ Set"
+            notify("Rephrase", "API key found in keychain")
+        else:
+            self.api_status_item.title = "API Key: ✗ Not set"
+            notify("Rephrase", "No API key in keychain")
 
     def test_rephrase(self, _):
         """Test the rephrase function with sample text."""
