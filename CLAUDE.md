@@ -1,5 +1,28 @@
 # CLAUDE.md - Claude Code Instructions for mac-rephraser
 
+## MANDATORY RULES
+
+**These rules MUST be followed for every code change:**
+
+1. **ALWAYS run tests before committing:**
+   ```bash
+   source venv/bin/activate && pytest test_rephraser.py -v
+   ```
+   - All tests must pass before any `git commit`
+   - If tests fail, fix the issues first
+   - Never skip this step, even for "small" changes
+
+2. **Test-Driven Development (TDD) for bug fixes:**
+   - Write a failing test that reproduces the bug first
+   - Then fix the bug
+   - Verify the test passes
+
+3. **Update tests when changing functionality:**
+   - If you modify existing behavior, update relevant tests
+   - If you add new features, add new tests
+
+---
+
 ## Project Overview
 
 **mac-rephraser** is a macOS menubar application that rephrases selected text using OpenAI's API. Users select text anywhere on their Mac, press `Ctrl+Option+R`, and the text gets replaced with a polished version.
