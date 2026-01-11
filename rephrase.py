@@ -237,20 +237,36 @@ class RephraseApp(rumps.App):
     
     def start_hotkey_listener(self):
         """Start global hotkey listener in background thread."""
+        import time as time_module
+
+        # Debounce: minimum seconds between hotkey triggers
+        DEBOUNCE_SECONDS = 1.0
+        last_triggered = [0.0]  # Use list to allow modification in nested function
+
         def on_hotkey():
+            current_time = time_module.time()
+
+            # Debounce check - ignore if triggered too recently
+            if current_time - last_triggered[0] < DEBOUNCE_SECONDS:
+                log.debug(f"Hotkey debounced (last triggered {current_time - last_triggered[0]:.2f}s ago)")
+                return
+
+            last_triggered[0] = current_time
             log.debug("Hotkey triggered!")
+
             if not self.is_processing:
+                # Clear pressed keys to prevent re-triggering
+                self.pressed_keys.clear()
                 # Small delay to let user release keys before we simulate Cmd+C
-                import time
-                time.sleep(0.2)
+                time_module.sleep(0.3)
                 # Run in thread to not block the listener
                 threading.Thread(target=self.do_rephrase, daemon=True).start()
             else:
                 log.debug("Already processing, ignoring hotkey")
-        
-        # Track pressed keys manually for debugging
+
+        # Track pressed keys manually
         self.pressed_keys = set()
-        
+
         def on_press(key):
             try:
                 key_name = key.char if hasattr(key, 'char') and key.char else str(key)
@@ -260,21 +276,24 @@ class RephraseApp(rumps.App):
             self.pressed_keys.add(key_name)
 
             # Check for our combo: Ctrl + Option + R
+            # Note: Option+R produces '®' on macOS, so we check for both
             held = self.pressed_keys
-            if ('Key.ctrl' in held or 'Key.ctrl_r' in held) and \
-               ('Key.alt' in held or 'Key.alt_r' in held) and \
-               ('r' in held or '®' in held):
+            has_ctrl = 'Key.ctrl' in held or 'Key.ctrl_r' in held
+            has_alt = 'Key.alt' in held or 'Key.alt_r' in held
+            has_r = 'r' in held or '®' in held
+
+            if has_ctrl and has_alt and has_r:
                 log.info("Hotkey Ctrl+Option+R detected!")
                 on_hotkey()
-        
+
         def on_release(key):
             try:
                 key_name = key.char if hasattr(key, 'char') and key.char else str(key)
             except:
                 key_name = str(key)
-            
+
             self.pressed_keys.discard(key_name)
-        
+
         self.listener = keyboard.Listener(on_press=on_press, on_release=on_release)
         self.listener.start()
         log.debug("Hotkey listener started")

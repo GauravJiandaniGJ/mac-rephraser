@@ -382,9 +382,26 @@ class TestClipboard:
 class TestClipboardBugs:
     """Tests to reproduce and verify clipboard-related bugs"""
 
+    @pytest.fixture(autouse=True)
+    def mock_subprocess(self, monkeypatch):
+        """Mock subprocess.run for all clipboard tests"""
+        from unittest.mock import MagicMock
+        mock_result = MagicMock()
+        mock_result.stdout = ""
+        mock_result.returncode = 0
+        self.mock_run_result = mock_result
+        self.subprocess_calls = []
+
+        def mock_run(*args, **kwargs):
+            self.subprocess_calls.append(args)
+            return self.mock_run_result
+
+        monkeypatch.setattr("subprocess.run", mock_run)
+        monkeypatch.setattr("clipboard_helper.time.sleep", lambda x: None)
+
     def test_original_clipboard_restored_when_nothing_selected(self, monkeypatch):
         """
-        BUG: When nothing is selected, original clipboard should be restored.
+        When nothing is selected, original clipboard should be restored.
         User had 'important text' in clipboard, triggered hotkey with nothing
         selected - clipboard should still have 'important text'.
         """
@@ -400,14 +417,8 @@ class TestClipboardBugs:
             copy_calls.append(text)
             clipboard_state["value"] = text
 
-        def mock_run(*args, **kwargs):
-            # Simulate Cmd+C but nothing was selected (clipboard stays empty)
-            pass
-
         monkeypatch.setattr("pyperclip.paste", mock_paste)
         monkeypatch.setattr("pyperclip.copy", mock_copy)
-        monkeypatch.setattr("subprocess.run", mock_run)
-        monkeypatch.setattr("clipboard_helper.time.sleep", lambda x: None)
 
         result = get_selected_text()
 
@@ -435,13 +446,8 @@ class TestClipboardBugs:
         def mock_copy(text):
             clipboard_state["value"] = text
 
-        def mock_run(*args, **kwargs):
-            clipboard_state["value"] = "selected text"
-
         monkeypatch.setattr("pyperclip.paste", mock_paste)
         monkeypatch.setattr("pyperclip.copy", mock_copy)
-        monkeypatch.setattr("subprocess.run", mock_run)
-        monkeypatch.setattr("clipboard_helper.time.sleep", lambda x: None)
 
         result = get_selected_text()
 
@@ -449,7 +455,7 @@ class TestClipboardBugs:
 
     def test_clipboard_not_cleared_if_cmd_c_fails_silently(self, monkeypatch):
         """
-        BUG: If Cmd+C runs but doesn't actually copy anything (silent failure),
+        If Cmd+C runs but doesn't actually copy anything (silent failure),
         the clipboard ends up empty because we cleared it first.
         Original clipboard should be restored in this case.
         """
@@ -463,15 +469,8 @@ class TestClipboardBugs:
         def mock_copy(text):
             clipboard_state["value"] = text
 
-        def mock_run(*args, **kwargs):
-            # Cmd+C "succeeds" but doesn't copy anything (nothing selected)
-            # Clipboard remains in its current state (empty from the clear)
-            pass
-
         monkeypatch.setattr("pyperclip.paste", mock_paste)
         monkeypatch.setattr("pyperclip.copy", mock_copy)
-        monkeypatch.setattr("subprocess.run", mock_run)
-        monkeypatch.setattr("clipboard_helper.time.sleep", lambda x: None)
 
         result = get_selected_text()
 
@@ -497,13 +496,8 @@ class TestClipboardBugs:
         def mock_copy(text):
             pass
 
-        def mock_run(*args, **kwargs):
-            pass
-
         monkeypatch.setattr("pyperclip.paste", mock_paste)
         monkeypatch.setattr("pyperclip.copy", mock_copy)
-        monkeypatch.setattr("subprocess.run", mock_run)
-        monkeypatch.setattr("clipboard_helper.time.sleep", lambda x: None)
 
         # Should not raise
         result = get_selected_text()
@@ -524,14 +518,8 @@ class TestClipboardBugs:
         def mock_copy(text):
             clipboard_state["value"] = text
 
-        def mock_run(*args, **kwargs):
-            # User selected empty/whitespace - clipboard stays empty after clear
-            pass
-
         monkeypatch.setattr("pyperclip.paste", mock_paste)
         monkeypatch.setattr("pyperclip.copy", mock_copy)
-        monkeypatch.setattr("subprocess.run", mock_run)
-        monkeypatch.setattr("clipboard_helper.time.sleep", lambda x: None)
 
         result = get_selected_text()
 
@@ -541,7 +529,7 @@ class TestClipboardBugs:
 
     def test_clipboard_timing_race_condition(self, monkeypatch):
         """
-        BUG: The 0.1s delay after Cmd+C might not be enough.
+        The delay after Cmd+C might not be enough.
         If clipboard hasn't updated yet, we get empty string and
         return None even though text WAS selected.
 
@@ -558,7 +546,7 @@ class TestClipboardBugs:
             if paste_call_count[0] == 1:
                 return clipboard_state["value"]  # Original: "original"
             # After clear + Cmd+C, but clipboard hasn't updated yet
-            # In real life, this happens when 0.1s isn't enough
+            # In real life, this happens when delay isn't enough
             if clipboard_state["update_pending"]:
                 return ""  # Clipboard shows empty (hasn't updated)
             return "selected text"
@@ -566,21 +554,13 @@ class TestClipboardBugs:
         def mock_copy(text):
             clipboard_state["value"] = text
 
-        def mock_run(*args, **kwargs):
-            # Cmd+C was sent but clipboard update is delayed
-            # (simulates real-world async clipboard behavior)
-            clipboard_state["update_pending"] = True
-
         monkeypatch.setattr("pyperclip.paste", mock_paste)
         monkeypatch.setattr("pyperclip.copy", mock_copy)
-        monkeypatch.setattr("subprocess.run", mock_run)
-        monkeypatch.setattr("clipboard_helper.time.sleep", lambda x: None)
 
         result = get_selected_text()
 
-        # Current behavior: returns None because clipboard appears empty
-        # This documents the bug - ideally we'd retry or wait longer
-        assert result is None, "Documents current (buggy) behavior"
+        # Returns None because clipboard appears empty after retries
+        assert result is None
         # At minimum, original clipboard should be restored
         assert clipboard_state["value"] == "original", \
             "Original clipboard should be restored on failure"
@@ -604,13 +584,8 @@ class TestClipboardBugs:
                 raise Exception("Clipboard write failed")
             clipboard_state["value"] = text
 
-        def mock_run(*args, **kwargs):
-            pass  # Cmd+C does nothing (nothing selected)
-
         monkeypatch.setattr("pyperclip.paste", mock_paste)
         monkeypatch.setattr("pyperclip.copy", mock_copy)
-        monkeypatch.setattr("subprocess.run", mock_run)
-        monkeypatch.setattr("clipboard_helper.time.sleep", lambda x: None)
 
         # Should not raise - restoration failure is handled gracefully
         result = get_selected_text()
@@ -638,13 +613,8 @@ class TestClipboardBugs:
         def mock_copy(text):
             clipboard_state["value"] = text
 
-        def mock_run(*args, **kwargs):
-            clipboard_state["value"] = "   \n\t  "
-
         monkeypatch.setattr("pyperclip.paste", mock_paste)
         monkeypatch.setattr("pyperclip.copy", mock_copy)
-        monkeypatch.setattr("subprocess.run", mock_run)
-        monkeypatch.setattr("clipboard_helper.time.sleep", lambda x: None)
 
         result = get_selected_text()
 
