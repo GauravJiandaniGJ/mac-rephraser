@@ -12,7 +12,7 @@ from pathlib import Path
 import rumps
 from pynput import keyboard
 
-from api import rephrase_text, RephraseError
+from api import rephrase_text, RephraseError, recreate_client
 from clipboard_helper import get_selected_text, paste_text
 from config import MODELS, TONES, get_model, get_tone, set_model, set_tone
 from keychain_helper import get_api_key, set_api_key
@@ -106,6 +106,7 @@ class RephraseApp(rumps.App):
             None,  # Separator
             self.api_status_item,
             rumps.MenuItem("Set API Key...", callback=self.prompt_api_key),
+            rumps.MenuItem("Recreate OpenAI Client", callback=self.recreate_openai_client),
             None,  # Separator
             rumps.MenuItem("Test Rephrase", callback=self.test_rephrase),
             rumps.MenuItem("View Logs", callback=self.open_logs),
@@ -169,6 +170,14 @@ class RephraseApp(rumps.App):
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             log.error(f"API key prompt failed: {e}")
     
+    def recreate_openai_client(self, _):
+        """Force recreation of the OpenAI client."""
+        log.info("User requested OpenAI client recreation")
+        if recreate_client():
+            notify("Rephrase", "OpenAI client recreated")
+        else:
+            notify("Rephrase", "Failed - API key not set")
+
     def test_rephrase(self, _):
         """Test the rephrase function with sample text."""
         test_text = "i want to check if this is working properly or not"
