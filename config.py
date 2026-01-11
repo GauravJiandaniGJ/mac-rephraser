@@ -105,6 +105,11 @@ def set_tone(tone: str) -> None:
     save_config(config)
 
 
+def reload_config() -> dict:
+    """Force reload configuration from file. Returns the reloaded config."""
+    return load_config()
+
+
 def parse_inline_tone(text: str) -> tuple[str, str]:
     """
     Check if text starts with an inline tone prefix.

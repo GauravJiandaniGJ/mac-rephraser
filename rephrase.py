@@ -14,7 +14,7 @@ from pynput import keyboard
 
 from api import rephrase_text, RephraseError, recreate_client
 from clipboard_helper import get_selected_text, paste_text
-from config import MODELS, TONES, get_model, get_tone, set_model, set_tone
+from config import MODELS, TONES, get_model, get_tone, set_model, set_tone, reload_config
 from keychain_helper import get_api_key, set_api_key
 from logger import log
 from usage_stats import get_stats_summary, record_rephrase
@@ -107,6 +107,7 @@ class RephraseApp(rumps.App):
             self.api_status_item,
             rumps.MenuItem("Set API Key...", callback=self.prompt_api_key),
             rumps.MenuItem("Recreate OpenAI Client", callback=self.recreate_openai_client),
+            rumps.MenuItem("Reload Config", callback=self.reload_config_file),
             None,  # Separator
             rumps.MenuItem("Test Rephrase", callback=self.test_rephrase),
             rumps.MenuItem("View Logs", callback=self.open_logs),
@@ -177,6 +178,23 @@ class RephraseApp(rumps.App):
             notify("Rephrase", "OpenAI client recreated")
         else:
             notify("Rephrase", "Failed - API key not set")
+
+    def reload_config_file(self, _):
+        """Reload configuration from file and update UI."""
+        log.info("User requested config reload")
+        config = reload_config()
+
+        # Update model checkmarks
+        current_model = config.get("model", "gpt-4o-mini")
+        for model_key, item in self.model_menu.items():
+            item.state = 1 if model_key == current_model else 0
+
+        # Update tone checkmarks
+        current_tone = config.get("tone", "rephrase")
+        for tone_key, item in self.tone_menu.items():
+            item.state = 1 if tone_key == current_tone else 0
+
+        notify("Rephrase", "Config reloaded")
 
     def test_rephrase(self, _):
         """Test the rephrase function with sample text."""
