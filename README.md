@@ -1,25 +1,52 @@
 # Mac Rephraser ✎
 
-A Mac-wide text rephrasing tool. Select text anywhere, press **Ctrl+Option+R**, get it rephrased instantly.
+A Mac-wide text rephrasing tool built by a senior engineer who got tired of wasting 16+ hours a month on copy-paste gymnastics.
+
+Select text anywhere → Press **Ctrl+Option+R** → Done.
 
 ![Demo](assets/demo.gif)
 
-## Why I Built This
+---
 
-Every Slack message to a client used to cost me **20 seconds**:
+## The Problem I Solved
 
-1. Write the message
-2. Select and copy it
-3. Open ChatGPT
-4. Paste and ask to rephrase
-5. Copy the result
-6. Paste back in Slack, tweak, send
+After 10+ years of building software for clients, I noticed something embarrassing: I was spending more time *formatting* messages than *writing* them.
 
-**100 messages/day × 20 seconds for a message × 30 days = 990 minutes**
+Every Slack message, every email, every client update followed the same ritual:
 
-**i.e. 16.5 hours a month wasted on just rephrasing & sending**
+```
+Write → Copy → Open ChatGPT → Paste → "Rephrase this professionally" →
+Wait → Copy → Switch back → Paste → Tweak → Send
+```
 
-Now? I write, select, press `Ctrl+Option+R`, done.
+**6 context switches. For a single message.**
+
+I timed it: **~20 seconds per message.**
+
+### The Math That Made Me Build This
+
+| Metric | Value |
+|--------|-------|
+| Messages per day | ~100 (across Slack, email, PRs) |
+| Time per message | 20 seconds |
+| Days per month | 30 |
+| **Total time wasted** | **16.5 hours/month** |
+
+That's **two full workdays** every month spent on copy-paste-wait-copy-paste.
+
+As an engineer, I knew I could fix this in a day. So I did.
+
+---
+
+## The Solution: One Hotkey
+
+Now my workflow is:
+
+```
+Write → Select → Ctrl+Option+R → Send
+```
+
+**3 seconds instead of 20.** No tab switching. No waiting. No breaking flow.
 
 ---
 
