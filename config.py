@@ -2,7 +2,6 @@
 
 import json
 import os
-import re
 from pathlib import Path
 
 CONFIG_DIR = Path.home() / ".config" / "rephrase"
