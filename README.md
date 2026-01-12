@@ -6,7 +6,7 @@ A Mac-wide text rephrasing tool. Select text anywhere, press **Ctrl+Option+R**, 
 
 ## Why I Built This
 
-Every Slack message to a client used to cost me **6 operations**:
+Every Slack message to a client used to cost me **20 seconds**:
 
 1. Write the message
 2. Select and copy it
@@ -15,7 +15,7 @@ Every Slack message to a client used to cost me **6 operations**:
 5. Copy the result
 6. Paste back in Slack, tweak, send
 
-**50 messages/day × 6 ops × 30 days = 9,000 wasted operations/month**
+**100 messages/day × 20 seconds for a message × 30 days = 990 minutes i.e. 16.5 hours a month wasted on just rephrasing & sending**
 
 Now? I write, select, press `Ctrl+Option+R`, done.
 
