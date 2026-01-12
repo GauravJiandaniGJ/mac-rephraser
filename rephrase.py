@@ -27,7 +27,7 @@ from config import (
     reload_config,
 )
 from keychain_helper import get_api_key, set_api_key
-from logger import log
+from logger import log, LOG_DIR
 from usage_stats import get_stats_summary, record_rephrase
 
 
@@ -265,8 +265,7 @@ class RephraseApp(rumps.App):
     
     def open_logs(self, _):
         """Open logs folder in Finder."""
-        log_dir = str(Path.home() / ".config" / "rephrase" / "logs")
-        subprocess.run(["open", log_dir])
+        subprocess.run(["open", str(LOG_DIR)])
     
     def quit_app(self, _):
         """Quit the application."""

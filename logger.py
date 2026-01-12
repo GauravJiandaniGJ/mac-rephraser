@@ -1,11 +1,26 @@
 """Logging configuration for Rephrase app."""
 
 import logging
-import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
-LOG_DIR = Path.home() / ".config" / "rephrase" / "logs"
+
+def get_log_directory() -> Path:
+    """Get platform-specific log directory."""
+    if sys.platform == "darwin":
+        # macOS: ~/Library/Logs/Rephrase/
+        return Path.home() / "Library" / "Logs" / "Rephrase"
+    elif sys.platform == "win32":
+        # Windows: %LOCALAPPDATA%/Rephrase/logs/
+        local_app_data = Path.home() / "AppData" / "Local"
+        return local_app_data / "Rephrase" / "logs"
+    else:
+        # Linux/other: ~/.config/rephrase/logs/ (XDG standard)
+        return Path.home() / ".config" / "rephrase" / "logs"
+
+
+LOG_DIR = get_log_directory()
 
 
 def setup_logger() -> logging.Logger:
