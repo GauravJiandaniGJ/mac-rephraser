@@ -217,7 +217,7 @@ rephraser/
 ---
 
 ### 10. Seniority Modifier + Context Feature
-**Commit:** `(pending)`
+**Commit:** `b0bc7ea`
 **Status:** Completed
 **Spec:** [FEATURE_SENIORITY_CONTEXT.md](FEATURE_SENIORITY_CONTEXT.md)
 
