@@ -15,7 +15,8 @@ Every Slack message to a client used to cost me **20 seconds**:
 5. Copy the result
 6. Paste back in Slack, tweak, send
 
-**100 messages/day × 20 seconds for a message × 30 days = 990 minutes i.e. 16.5 hours a month wasted on just rephrasing & sending**
+**100 messages/day × 20 seconds for a message × 30 days**
+**= 990 minutes i.e. 16.5 hours a month wasted on just rephrasing & sending**
 
 Now? I write, select, press `Ctrl+Option+R`, done.
 
