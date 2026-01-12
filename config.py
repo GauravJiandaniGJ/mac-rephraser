@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from pathlib import Path
 
 CONFIG_DIR = Path.home() / ".config" / "rephrase"
@@ -49,9 +50,26 @@ INLINE_PREFIXES = {
     "casual:": "friendly",
 }
 
+# Seniority levels that modify all tones
+SENIORITY_LEVELS = {
+    "senior": {
+        "name": "Senior/Lead",
+        "modifier": "You are writing as a senior engineer or tech lead. Use confident, authoritative language. Be direct but respectful. Show technical depth without being condescending.",
+    },
+    "mid": {
+        "name": "Mid-Level",
+        "modifier": "You are writing as a mid-level engineer. Be professional and collaborative.",
+    },
+    "none": {
+        "name": "None",
+        "modifier": "",
+    },
+}
+
 DEFAULT_CONFIG = {
     "model": "gpt-4o-mini",
     "tone": "rephrase",
+    "seniority": "none",
 }
 
 
@@ -105,12 +123,57 @@ def set_tone(tone: str) -> None:
     save_config(config)
 
 
+def get_seniority() -> str:
+    """Get current seniority setting."""
+    return load_config().get("seniority", "none")
+
+
+def set_seniority(seniority: str) -> None:
+    """Set seniority preference."""
+    config = load_config()
+    config["seniority"] = seniority
+    save_config(config)
+
+
 def reload_config() -> dict:
     """Force reload configuration from file. Returns the reloaded config."""
     return load_config()
 
 
-def parse_inline_tone(text: str) -> tuple[str, str]:
+def parse_context(text: str) -> tuple[str | None, str]:
+    """
+    Extract context from square brackets at start of text.
+    Returns (context, clean_text) tuple.
+
+    Examples:
+        "[meeting notes] hello" -> ("meeting notes", "hello")
+        "just text" -> (None, "just text")
+        "[urgent] formal: fix this" -> ("urgent", "formal: fix this")
+    """
+    text = text.lstrip()
+    if not text.startswith("["):
+        return None, text
+
+    # Find matching closing bracket (handle nested brackets)
+    depth = 0
+    for i, char in enumerate(text):
+        if char == "[":
+            depth += 1
+        elif char == "]":
+            depth -= 1
+            if depth == 0:
+                context = text[1:i].strip()
+                remaining = text[i + 1:].strip()
+                # Don't return empty context
+                if not context:
+                    return None, text
+                return context, remaining
+
+    # No matching bracket found
+    return None, text
+
+
+def parse_inline_tone(text: str) -> tuple[str | None, str]:
     """
     Check if text starts with an inline tone prefix.
     Returns (tone_key, remaining_text) or (None, original_text).

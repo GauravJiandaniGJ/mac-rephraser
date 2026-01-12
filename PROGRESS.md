@@ -216,10 +216,39 @@ rephraser/
 
 ---
 
-## TODO: Future Tasks
+### 10. Seniority Modifier + Context Feature
+**Commit:** `(pending)`
+**Status:** Completed
+**Spec:** [FEATURE_SENIORITY_CONTEXT.md](FEATURE_SENIORITY_CONTEXT.md)
 
-No pending tasks at this time.
+**Summary:**
+1. **Seniority Modifier** - Global setting (senior/mid/none) that makes ALL tones sound like selected level
+2. **Context Feature** - Inline syntax `[context] text` for situational awareness
+
+**Example:**
+```
+[client escalation] formal: fix this now
+→ Senior voice + Professional tone + Context-aware response
+```
+
+**Implementation:**
+- [x] Add SENIORITY_LEVELS to config.py
+- [x] Add get_seniority() / set_seniority() functions
+- [x] Add parse_context() function with nested bracket support
+- [x] Modify api.py with build_system_prompt() for combined prompts
+- [x] Add Seniority submenu to UI
+- [x] Write tests (21 new tests added)
+- [x] All 58 tests passing
+
+**Files changed:**
+- `config.py` - Added SENIORITY_LEVELS, parse_context(), get/set_seniority()
+- `api.py` - Added build_system_prompt(), updated rephrase_text() flow
+- `rephrase.py` - Added Seniority submenu, updated reload_config_file()
+- `tests/test_config.py` - Added TestSeniority (4 tests), TestParseContext (9 tests)
+- `tests/test_api.py` - Added TestBuildSystemPrompt (4 tests), TestRephraseSeniorityAndContext (4 tests)
+
+**Test results:** 58 passed in ~1.2s
 
 ---
 
-*Last updated: 2026-01-11*
+*Last updated: 2026-01-12*

@@ -14,6 +14,7 @@ class TestConfig:
 
         assert DEFAULT_CONFIG["model"] == "gpt-4o-mini"
         assert DEFAULT_CONFIG["tone"] == "rephrase"
+        assert DEFAULT_CONFIG["seniority"] == "none"
 
     def test_models_available(self):
         """Should have at least 2 models available"""
@@ -121,3 +122,121 @@ class TestConfig:
 
         set_tone("concise")
         assert get_tone() == "concise"
+
+
+class TestSeniority:
+    """Tests for seniority configuration"""
+
+    def test_seniority_levels_available(self):
+        """Should have all expected seniority levels"""
+        from config import SENIORITY_LEVELS
+
+        expected_levels = ["senior", "mid", "none"]
+        for level in expected_levels:
+            assert level in SENIORITY_LEVELS, f"Missing level: {level}"
+            assert "name" in SENIORITY_LEVELS[level], f"Level {level} missing 'name'"
+            assert "modifier" in SENIORITY_LEVELS[level], f"Level {level} missing 'modifier'"
+
+    def test_senior_modifier_not_empty(self):
+        """Senior level should have a non-empty modifier"""
+        from config import SENIORITY_LEVELS
+
+        assert len(SENIORITY_LEVELS["senior"]["modifier"]) > 20
+
+    def test_none_modifier_is_empty(self):
+        """None level should have empty modifier"""
+        from config import SENIORITY_LEVELS
+
+        assert SENIORITY_LEVELS["none"]["modifier"] == ""
+
+    def test_set_and_get_seniority(self, temp_config):
+        """set_seniority and get_seniority should work correctly"""
+        from config import get_seniority, set_seniority
+
+        # Default should be "none"
+        assert get_seniority() == "none"
+
+        set_seniority("senior")
+        assert get_seniority() == "senior"
+
+        set_seniority("mid")
+        assert get_seniority() == "mid"
+
+        set_seniority("none")
+        assert get_seniority() == "none"
+
+
+class TestParseContext:
+    """Tests for parse_context function"""
+
+    def test_basic_context(self):
+        """Should extract context from brackets"""
+        from config import parse_context
+
+        context, text = parse_context("[meeting notes] hello world")
+        assert context == "meeting notes"
+        assert text == "hello world"
+
+    def test_no_context(self):
+        """Should return None when no brackets"""
+        from config import parse_context
+
+        context, text = parse_context("just regular text")
+        assert context is None
+        assert text == "just regular text"
+
+    def test_context_with_tone_prefix(self):
+        """Context should work with inline tone prefix"""
+        from config import parse_context
+
+        context, text = parse_context("[urgent] formal: fix this now")
+        assert context == "urgent"
+        assert text == "formal: fix this now"
+
+    def test_empty_brackets(self):
+        """Empty brackets should return None context"""
+        from config import parse_context
+
+        context, text = parse_context("[] some text")
+        assert context is None
+        assert text == "[] some text"
+
+    def test_nested_brackets(self):
+        """Should handle nested brackets"""
+        from config import parse_context
+
+        context, text = parse_context("[foo [bar] baz] text")
+        assert context == "foo [bar] baz"
+        assert text == "text"
+
+    def test_whitespace_handling(self):
+        """Should strip whitespace from context and text"""
+        from config import parse_context
+
+        context, text = parse_context("  [  client call  ]   hello  ")
+        assert context == "client call"
+        assert text == "hello"
+
+    def test_no_closing_bracket(self):
+        """Unclosed bracket should return None context"""
+        from config import parse_context
+
+        context, text = parse_context("[unclosed text")
+        assert context is None
+        assert text == "[unclosed text"
+
+    def test_bracket_not_at_start(self):
+        """Brackets not at start should return None context"""
+        from config import parse_context
+
+        context, text = parse_context("hello [world]")
+        assert context is None
+        assert text == "hello [world]"
+
+    def test_multiline_text_after_context(self):
+        """Should handle multiline text after context"""
+        from config import parse_context
+
+        context, text = parse_context("[context] line1\nline2")
+        assert context == "context"
+        assert text == "line1\nline2"

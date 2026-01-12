@@ -2,7 +2,15 @@
 
 from openai import OpenAI
 
-from config import TONES, get_model, get_tone, parse_inline_tone
+from config import (
+    TONES,
+    SENIORITY_LEVELS,
+    get_model,
+    get_tone,
+    get_seniority,
+    parse_inline_tone,
+    parse_context,
+)
 from keychain_helper import get_api_key
 from logger import log
 
@@ -56,30 +64,69 @@ def reset_client() -> None:
     _client_api_key = None
 
 
+def build_system_prompt(tone_key: str, seniority_key: str, context: str | None) -> str:
+    """
+    Build the system prompt by combining tone, seniority modifier, and context.
+
+    Order: Seniority modifier → Tone prompt → Context
+    """
+    tone_config = TONES.get(tone_key, TONES["rephrase"])
+    seniority_config = SENIORITY_LEVELS.get(seniority_key, SENIORITY_LEVELS["none"])
+
+    # Start with tone prompt
+    prompt = tone_config["prompt"]
+
+    # Prepend seniority modifier if set
+    seniority_modifier = seniority_config.get("modifier", "")
+    if seniority_modifier:
+        prompt = f"{seniority_modifier}\n\n{prompt}"
+
+    # Append context if provided
+    if context:
+        prompt = f"{prompt}\n\nContext: {context}"
+
+    return prompt
+
+
 def rephrase_text(text: str) -> str:
     """
     Rephrase the given text using OpenAI API.
 
-    Checks for inline tone prefixes first, falls back to configured tone.
+    Processing order:
+    1. Parse context from [brackets]
+    2. Parse inline tone prefix
+    3. Get seniority setting
+    4. Build combined system prompt
+    5. Call API
+
     Returns the rephrased text.
     Raises RephraseError on failure.
     """
-    # Check for inline tone override
-    inline_tone, clean_text = parse_inline_tone(text)
+    # Step 1: Parse context from [brackets]
+    context, text_after_context = parse_context(text)
+
+    # Step 2: Check for inline tone override
+    inline_tone, clean_text = parse_inline_tone(text_after_context)
     tone_key = inline_tone if inline_tone else get_tone()
 
     if not clean_text.strip():
         raise RephraseError("No text to rephrase")
 
-    tone_config = TONES.get(tone_key, TONES["rephrase"])
+    # Step 3: Get seniority setting
+    seniority_key = get_seniority()
+
+    # Step 4: Build combined system prompt
+    system_prompt = build_system_prompt(tone_key, seniority_key, context)
     model = get_model()
+
+    log.debug(f"Rephrasing with tone={tone_key}, seniority={seniority_key}, context={context}")
 
     try:
         client = get_client()
         response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": tone_config["prompt"]},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": clean_text},
             ],
             temperature=0.3,  # Lower temperature for more consistent output

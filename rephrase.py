@@ -14,7 +14,18 @@ from pynput import keyboard
 
 from api import rephrase_text, RephraseError, recreate_client
 from clipboard_helper import get_selected_text, paste_text
-from config import MODELS, TONES, get_model, get_tone, set_model, set_tone, reload_config
+from config import (
+    MODELS,
+    TONES,
+    SENIORITY_LEVELS,
+    get_model,
+    get_tone,
+    get_seniority,
+    set_model,
+    set_tone,
+    set_seniority,
+    reload_config,
+)
 from keychain_helper import get_api_key, set_api_key
 from logger import log
 from usage_stats import get_stats_summary, record_rephrase
@@ -85,7 +96,19 @@ class RephraseApp(rumps.App):
             if tone_key == current_tone:
                 item.state = 1  # Checkmark
             self.tone_menu.add(item)
-        
+
+        # Seniority submenu
+        self.seniority_menu = rumps.MenuItem("Seniority")
+        current_seniority = get_seniority()
+        for level_key, level_config in SENIORITY_LEVELS.items():
+            item = rumps.MenuItem(
+                level_config["name"],
+                callback=lambda sender, s=level_key: self.select_seniority(s, sender),
+            )
+            if level_key == current_seniority:
+                item.state = 1  # Checkmark
+            self.seniority_menu.add(item)
+
         # API Key status
         api_key = get_api_key()
         api_status = "API Key: ✓ Set" if api_key else "API Key: ✗ Not set"
@@ -103,6 +126,7 @@ class RephraseApp(rumps.App):
             None,  # Separator
             self.model_menu,
             self.tone_menu,
+            self.seniority_menu,
             None,  # Separator
             self.api_status_item,
             rumps.MenuItem("Set API Key...", callback=self.prompt_api_key),
@@ -143,7 +167,16 @@ class RephraseApp(rumps.App):
         for item in self.tone_menu.values():
             item.state = 0
         sender.state = 1
-    
+
+    def select_seniority(self, seniority_key: str, sender: rumps.MenuItem):
+        """Handle seniority selection."""
+        log.info(f"Seniority changed to: {seniority_key}")
+        set_seniority(seniority_key)
+        # Update checkmarks
+        for item in self.seniority_menu.values():
+            item.state = 0
+        sender.state = 1
+
     def prompt_api_key(self, _):
         """Show dialog to enter API key."""
         log.debug("Prompting for API key...")
@@ -194,6 +227,11 @@ class RephraseApp(rumps.App):
         current_tone = config.get("tone", "rephrase")
         for tone_key, item in self.tone_menu.items():
             item.state = 1 if tone_key == current_tone else 0
+
+        # Update seniority checkmarks
+        current_seniority = config.get("seniority", "none")
+        for level_key, item in self.seniority_menu.items():
+            item.state = 1 if level_key == current_seniority else 0
 
         notify("Rephrase", "Config reloaded")
 
