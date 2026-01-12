@@ -1,6 +1,6 @@
 # Mac Rephraser ✎
 
-A Mac-wide text rephrasing tool powered by OpenAI. Select text anywhere, press **Ctrl+Option+R**, get it rephrased instantly.
+A Mac-wide text rephrasing tool. Select text anywhere, press **Ctrl+Option+R**, get it rephrased instantly.
 
 ![Demo](assets/demo.gif)
 
