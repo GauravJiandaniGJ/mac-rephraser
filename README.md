@@ -46,7 +46,7 @@ Now my workflow is:
 Write → Select → Ctrl+Option+R → Send
 ```
 
-**3 seconds instead of 20.** No tab switching. No waiting. No breaking flow.
+**2 seconds instead of 20.** No tab switching. No waiting. No breaking flow.
 
 ---
 
