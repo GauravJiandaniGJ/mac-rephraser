@@ -1,0 +1,45 @@
+name: Build Windows exe
+
+on:
+  push:
+    branches: [windows]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements-windows.txt pyinstaller pytest
+
+      - name: Run tests
+        run: pytest tests -v
+
+      - name: Import smoke test (all Windows modules load)
+        run: python -c "import rephrase_win, clipboard_helper_win; print('imports OK')"
+
+      - name: Build exe
+        run: >
+          pyinstaller --noconfirm --onefile --noconsole --name Rephrase
+          --hidden-import pystray._win32
+          --hidden-import keyring.backends.Windows
+          rephrase_win.py
+
+      - name: Stamp version into filename
+        shell: pwsh
+        run: |
+          $version = python -c "from version import __version__; print(__version__)"
+          Copy-Item dist/Rephrase.exe "dist/Rephrase-$version.exe"
+          Remove-Item dist/Rephrase.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Rephrase-windows
+          path: dist/Rephrase-*.exe
+          if-no-files-found: error

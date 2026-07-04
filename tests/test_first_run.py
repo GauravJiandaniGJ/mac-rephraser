@@ -1,8 +1,11 @@
-"""Tests for the first-run onboarding flow in rephrase.py."""
+"""Tests for the first-run onboarding flow in rephrase.py (macOS entry point)."""
 
 from unittest.mock import MagicMock
 
-import rephrase
+import pytest
+
+# rephrase.py imports rumps, which only exists on macOS
+rephrase = pytest.importorskip("rephrase", reason="requires rumps (macOS only)")
 
 
 def test_first_run_skipped_when_key_exists(monkeypatch):
