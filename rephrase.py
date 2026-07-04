@@ -7,6 +7,7 @@ Select text anywhere, press Cmd+Option+R, get it rephrased.
 
 import subprocess
 import threading
+import time
 from pathlib import Path
 
 import rumps
@@ -29,6 +30,7 @@ from config import (
 from keychain_helper import get_api_key, set_api_key
 from logger import log, LOG_DIR
 from usage_stats import get_stats_summary, record_rephrase
+from version import __version__
 
 
 def notify(title: str, message: str = "", sound: bool = False):
@@ -65,6 +67,7 @@ class RephraseApp(rumps.App):
         self.is_processing = False
         self.setup_menu()
         self.start_hotkey_listener()
+        self.check_first_run()
         log.info("App initialized. Hotkey: Ctrl+Option+R")
     
     def setup_menu(self):
@@ -137,6 +140,7 @@ class RephraseApp(rumps.App):
             rumps.MenuItem("Test Rephrase", callback=self.test_rephrase),
             rumps.MenuItem("View Logs", callback=self.open_logs),
             rumps.MenuItem("Hotkey: ⌃⌥R", callback=None),
+            rumps.MenuItem(f"Rephrase v{__version__}", callback=None),
             None,  # Separator
             rumps.MenuItem("Quit", callback=self.quit_app),
         ]
@@ -204,7 +208,42 @@ class RephraseApp(rumps.App):
                 log.debug("API key prompt cancelled")
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             log.error(f"API key prompt failed: {e}")
-    
+
+    def check_first_run(self):
+        """On first launch (no API key stored yet), walk the user through setup."""
+        if get_api_key():
+            return
+
+        def run_onboarding():
+            # Let the menubar icon appear before showing dialogs
+            time.sleep(1.0)
+            log.info("First run: no API key set, showing onboarding")
+            script = '''
+            display dialog "Welcome to Rephrase!
+
+Two quick steps to finish setup:
+
+1. Grant permissions when macOS asks (or in System Settings → Privacy & Security):
+   • Accessibility
+   • Input Monitoring
+
+2. Enter your OpenAI API key in the next dialog.
+
+Then select text anywhere and press Ctrl+Option+R to rephrase it." with title "Rephrase Setup" buttons {"Continue"} default button "Continue"
+            '''
+            try:
+                subprocess.run(
+                    ["osascript", "-e", script],
+                    capture_output=True,
+                    text=True,
+                    timeout=300,
+                )
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+                log.warning(f"Onboarding welcome dialog failed: {e}")
+            self.prompt_api_key(None)
+
+        threading.Thread(target=run_onboarding, daemon=True).start()
+
     def recreate_openai_client(self, _):
         """Force recreation of the OpenAI client."""
         log.info("User requested OpenAI client recreation")
