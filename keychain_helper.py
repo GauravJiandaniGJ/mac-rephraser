@@ -1,16 +1,24 @@
-"""Secure API key storage using macOS Keychain via keyring."""
+"""Secure API key storage in the OS credential store via keyring.
+
+macOS: Keychain. Windows: Credential Manager (WinVault).
+"""
 
 import sys
 
 import keyring
 
-# In the packaged .app (py2app sets sys.frozen), keyring's automatic backend
-# discovery can fail because it scans package metadata that isn't shipped in
-# the bundle - pin the macOS Keychain backend explicitly.
-if getattr(sys, "frozen", None) and sys.platform == "darwin":
-    from keyring.backends import macOS
+# In packaged apps (py2app/PyInstaller set sys.frozen), keyring's automatic
+# backend discovery can fail because it scans package metadata that isn't
+# shipped in the bundle - pin the native backend explicitly.
+if getattr(sys, "frozen", None):
+    if sys.platform == "darwin":
+        from keyring.backends import macOS
 
-    keyring.set_keyring(macOS.Keyring())
+        keyring.set_keyring(macOS.Keyring())
+    elif sys.platform == "win32":
+        from keyring.backends import Windows
+
+        keyring.set_keyring(Windows.WinVaultKeyring())
 
 SERVICE_NAME = "rephrase-app"
 ACCOUNT_NAME = "openai-api-key"

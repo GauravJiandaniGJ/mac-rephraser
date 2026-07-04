@@ -1,0 +1,7 @@
+pynput>=1.7.6
+openai>=1.0.0
+keyring>=24.0.0
+pyperclip>=1.8.2
+pystray>=0.19.5
+Pillow>=10.0.0
+winotify>=1.1.0

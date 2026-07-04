@@ -2,9 +2,20 @@
 
 import json
 import os
+import sys
 from pathlib import Path
 
-CONFIG_DIR = Path.home() / ".config" / "rephrase"
+
+def get_config_dir() -> Path:
+    """Platform-specific config directory (macOS/Linux path unchanged)."""
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        base = Path(appdata) if appdata else Path.home() / "AppData" / "Roaming"
+        return base / "Rephrase"
+    return Path.home() / ".config" / "rephrase"
+
+
+CONFIG_DIR = get_config_dir()
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
 # Available models

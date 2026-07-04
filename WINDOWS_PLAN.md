@@ -1,9 +1,19 @@
-# Windows Port — Architecture Plan (not yet implemented)
+# Windows Port — Architecture
+
+> **Status: implemented** on the `windows` branch. Entry point:
+> `rephrase_win.py` (pystray tray app), clipboard: `clipboard_helper_win.py`,
+> build: `build_windows.bat` → `dist\Rephrase-<version>.exe`, user guide:
+> `WINDOWS_INSTALL.md`. The code was written and unit-tested on macOS —
+> it still needs a smoke test on a real Windows machine.
+>
+> Design deviation from the original plan: instead of a `platform_impl/`
+> abstraction layer, Windows got its own entry point (`rephrase_win.py`)
+> mirroring `rephrase.py`. That duplicates the menu/hotkey wiring (~150
+> lines) but leaves the heavily-used Mac code paths completely untouched,
+> which mattered more.
 
 Windows support is not a packaging-only task: the menubar UI (`rumps`) and all
 `osascript` calls (clipboard keystrokes, notifications, dialogs) are Mac-only.
-This documents what a port needs so it can be picked up later. Estimated
-effort: **2–3 days** including testing.
 
 ## What already works on Windows (no changes)
 

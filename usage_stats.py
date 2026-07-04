@@ -4,9 +4,10 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from config import get_config_dir
 from logger import log
 
-STATS_DIR = Path.home() / ".config" / "rephrase"
+STATS_DIR = get_config_dir()
 STATS_FILE = STATS_DIR / "usage_stats.json"
 RETENTION_DAYS = 30
 
