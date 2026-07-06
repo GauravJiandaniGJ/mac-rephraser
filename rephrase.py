@@ -27,7 +27,7 @@ from config import (
     set_seniority,
     reload_config,
 )
-from keychain_helper import get_api_key, set_api_key
+from keychain_helper import CredentialStoreError, get_api_key, set_api_key
 from logger import log, LOG_DIR
 from usage_stats import get_stats_summary, record_rephrase
 from version import __version__
@@ -113,8 +113,12 @@ class RephraseApp(rumps.App):
             self.seniority_menu.add(item)
 
         # API Key status
-        api_key = get_api_key()
-        api_status = "API Key: ✓ Set" if api_key else "API Key: ✗ Not set"
+        try:
+            api_key = get_api_key()
+            api_status = "API Key: ✓ Set" if api_key else "API Key: ✗ Not set"
+        except CredentialStoreError as e:
+            log.warning(f"Credential store unavailable: {e}")
+            api_status = "API Key: ⚠ Store unavailable"
         self.api_status_item = rumps.MenuItem(api_status)
         self.api_status_item.set_callback(None)
 
@@ -200,7 +204,12 @@ class RephraseApp(rumps.App):
             )
             if result.returncode == 0 and result.stdout.strip():
                 api_key = result.stdout.strip()
-                set_api_key(api_key)
+                try:
+                    set_api_key(api_key)
+                except CredentialStoreError as e:
+                    log.error(f"Failed to save API key: {e}")
+                    notify("Rephrase", str(e))
+                    return
                 self.api_status_item.title = "API Key: ✓ Set"
                 log.info("API key saved successfully")
                 notify("Rephrase", "API key saved securely")
@@ -211,7 +220,12 @@ class RephraseApp(rumps.App):
 
     def check_first_run(self):
         """On first launch (no API key stored yet), walk the user through setup."""
-        if get_api_key():
+        try:
+            if get_api_key():
+                return
+        except CredentialStoreError as e:
+            log.error(f"Credential store unavailable at startup: {e}")
+            notify("Rephrase", str(e))
             return
 
         def run_onboarding():
@@ -277,7 +291,13 @@ Then select text anywhere and press Ctrl+Option+R to rephrase it." with title "R
     def refresh_api_key_status(self, _):
         """Re-check keychain for API key and update status display."""
         log.info("User requested API key status refresh")
-        api_key = get_api_key()
+        try:
+            api_key = get_api_key()
+        except CredentialStoreError as e:
+            log.error(f"Credential store unavailable: {e}")
+            self.api_status_item.title = "API Key: ⚠ Store unavailable"
+            notify("Rephrase", str(e))
+            return
         if api_key:
             self.api_status_item.title = "API Key: ✓ Set"
             notify("Rephrase", "API key found in keychain")

@@ -5,7 +5,10 @@
       "Bash(git commit:*)",
       "Bash(source:*)",
       "Bash(pip install:*)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(gh auth *)"
     ]
   }
 }

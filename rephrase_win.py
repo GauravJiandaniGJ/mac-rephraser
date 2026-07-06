@@ -36,7 +36,7 @@ from config import (
     set_tone,
     set_seniority,
 )
-from keychain_helper import get_api_key, set_api_key
+from keychain_helper import CredentialStoreError, get_api_key, set_api_key
 from logger import log, LOG_DIR
 from usage_stats import get_stats_summary, record_rephrase
 from version import __version__
@@ -126,12 +126,18 @@ class RephraseWinApp:
         Item = pystray.MenuItem
 
         def radio_items(options: dict, getter, setter, name_of):
+            def make_action(k):
+                return lambda icon, item: self._select(setter, k)
+
+            def make_checked(k):
+                return lambda item: getter() == k
+
             return pystray.Menu(
                 *[
                     Item(
                         name_of(key, value),
-                        lambda icon, item, k=key: self._select(setter, k),
-                        checked=lambda item, k=key: getter() == k,
+                        make_action(key),
+                        checked=make_checked(key),
                         radio=True,
                     )
                     for key, value in options.items()
@@ -155,7 +161,7 @@ class RephraseWinApp:
             ),
             pystray.Menu.SEPARATOR,
             Item(
-                lambda item: "API Key: ✓ Set" if get_api_key() else "API Key: ✗ Not set",
+                lambda item: self._api_key_status_text(),
                 None,
                 enabled=False,
             ),
@@ -182,13 +188,25 @@ class RephraseWinApp:
         self.status = status
         self.icon.update_menu()
 
+    def _api_key_status_text(self) -> str:
+        try:
+            return "API Key: ✓ Set" if get_api_key() else "API Key: ✗ Not set"
+        except CredentialStoreError as e:
+            log.warning(f"Credential store unavailable: {e}")
+            return "API Key: ⚠ Store unavailable"
+
     # --- Menu actions ---------------------------------------------------------
 
     def prompt_api_key(self, icon=None, item=None):
         log.debug("Prompting for API key...")
         api_key = ask_api_key()
         if api_key and api_key.strip():
-            set_api_key(api_key.strip())
+            try:
+                set_api_key(api_key.strip())
+            except CredentialStoreError as e:
+                log.error(f"Failed to save API key: {e}")
+                notify("Rephrase ✗", str(e))
+                return
             log.info("API key saved successfully")
             notify(APP_NAME, "API key saved securely")
             self.icon.update_menu()
@@ -255,7 +273,12 @@ class RephraseWinApp:
 
     def check_first_run(self):
         """On first launch (no API key stored yet), walk the user through setup."""
-        if get_api_key():
+        try:
+            if get_api_key():
+                return
+        except CredentialStoreError as e:
+            log.error(f"Credential store unavailable at startup: {e}")
+            notify("Rephrase ✗", str(e))
             return
 
         def run_onboarding():

@@ -24,14 +24,28 @@ SERVICE_NAME = "rephrase-app"
 ACCOUNT_NAME = "openai-api-key"
 
 
+class CredentialStoreError(Exception):
+    """Raised when the OS credential store (Keychain/Credential Manager) is unavailable."""
+
+
 def get_api_key() -> str | None:
     """Retrieve API key from Keychain."""
-    return keyring.get_password(SERVICE_NAME, ACCOUNT_NAME)
+    try:
+        return keyring.get_password(SERVICE_NAME, ACCOUNT_NAME)
+    except keyring.errors.KeyringError as e:
+        raise CredentialStoreError(
+            "Could not read the API key from the OS credential store."
+        ) from e
 
 
 def set_api_key(api_key: str) -> None:
     """Store API key in Keychain."""
-    keyring.set_password(SERVICE_NAME, ACCOUNT_NAME, api_key)
+    try:
+        keyring.set_password(SERVICE_NAME, ACCOUNT_NAME, api_key)
+    except keyring.errors.KeyringError as e:
+        raise CredentialStoreError(
+            "Could not save the API key to the OS credential store."
+        ) from e
 
 
 def delete_api_key() -> None:

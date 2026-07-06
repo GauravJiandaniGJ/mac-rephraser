@@ -42,3 +42,33 @@ class TestKeychain:
 
         # Should not raise
         delete_api_key()
+
+    def test_get_api_key_raises_credential_store_error_when_backend_unavailable(
+        self, monkeypatch
+    ):
+        """get_api_key should surface a typed error when the OS credential store fails"""
+        from keychain_helper import CredentialStoreError, get_api_key
+        import keyring
+
+        def mock_get(service, account):
+            raise keyring.errors.KeyringError("Credential Manager unavailable")
+
+        monkeypatch.setattr("keyring.get_password", mock_get)
+
+        with pytest.raises(CredentialStoreError):
+            get_api_key()
+
+    def test_set_api_key_raises_credential_store_error_when_backend_unavailable(
+        self, monkeypatch
+    ):
+        """set_api_key should surface a typed error when the OS credential store fails"""
+        from keychain_helper import CredentialStoreError, set_api_key
+        import keyring
+
+        def mock_set(service, account, password):
+            raise keyring.errors.KeyringError("Credential Manager unavailable")
+
+        monkeypatch.setattr("keyring.set_password", mock_set)
+
+        with pytest.raises(CredentialStoreError):
+            set_api_key("sk-test-12345")
