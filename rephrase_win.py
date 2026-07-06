@@ -258,8 +258,11 @@ class RephraseWinApp:
                 return
 
             def run():
-                # Let the user release the hotkey before we send Ctrl+C
-                time.sleep(0.3)
+                # Let the user release the hotkey before we send Ctrl+C.
+                # 1s (was 0.3s) gives time to lift the keys so the 'r' from
+                # Ctrl+Alt+R doesn't type into and overwrite the selected
+                # text before our Ctrl+C copies it.
+                time.sleep(1)
                 self.do_rephrase()
 
             threading.Thread(target=run, daemon=True).start()
