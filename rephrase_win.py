@@ -25,6 +25,7 @@ from winotify import Notification
 
 from api import rephrase_text, RephraseError
 from clipboard_helper_win import get_selected_text, paste_text
+from hotkey_release import HOTKEY_RELEASE_TIMEOUT, hotkey_keys_released
 from config import (
     MODELS,
     TONES,
@@ -116,6 +117,10 @@ class RephraseWinApp:
         self.is_processing = False
         self.status = "Ready"
         self.hotkeys = None
+        self.key_listener = None
+        # Live set of keys currently held down, kept up to date by key_listener.
+        # Used to wait for hotkey release before copying the selection.
+        self._pressed_keys = set()
         self.icon = pystray.Icon(
             APP_NAME, make_icon_image(), APP_NAME, menu=self._build_menu()
         )
@@ -236,6 +241,8 @@ class RephraseWinApp:
         log.info("Quitting app...")
         if self.hotkeys:
             self.hotkeys.stop()
+        if self.key_listener:
+            self.key_listener.stop()
         self.icon.stop()
 
     # --- Hotkey + workflow ------------------------------------------------------
@@ -258,20 +265,37 @@ class RephraseWinApp:
                 return
 
             def run():
-                # Let the user release the hotkey before we send Ctrl+C.
-                # 1s (was 0.3s) gives time to lift the keys so the 'r' from
-                # Ctrl+Alt+R doesn't type into and overwrite the selected
-                # text before our Ctrl+C copies it.
-                time.sleep(1)
+                # Wait until Ctrl, Alt, and R are all released before sending
+                # Ctrl+C. Otherwise a still-held 'r' types into and overwrites
+                # the selected text. This waits however long the keys are held
+                # (0.5s or 5s) and fires the instant they're released, with a
+                # timeout backstop in case a key-release event is ever missed.
+                deadline = time.time() + HOTKEY_RELEASE_TIMEOUT
+                while not hotkey_keys_released(self._pressed_keys):
+                    if time.time() >= deadline:
+                        log.warning("Timed out waiting for hotkey release")
+                        break
+                    time.sleep(0.02)
+                log.debug("Hotkey released, copying selection")
                 self.do_rephrase()
 
             threading.Thread(target=run, daemon=True).start()
 
+        def on_press(key):
+            self._pressed_keys.add(key)
+
+        def on_release(key):
+            self._pressed_keys.discard(key)
+
         # GlobalHotKeys handles the Ctrl-held char translation quirks on
         # Windows (Ctrl+R arrives as '\x12', not 'r') that a raw Listener
-        # like the Mac version uses would misread.
+        # like the Mac version uses would misread. A separate lightweight
+        # Listener tracks which keys are currently held so we can wait for the
+        # hotkey to be released before copying.
         self.hotkeys = keyboard.GlobalHotKeys({"<ctrl>+<alt>+r": on_hotkey})
         self.hotkeys.start()
+        self.key_listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+        self.key_listener.start()
         log.debug("Hotkey listener started")
 
     def check_first_run(self):
