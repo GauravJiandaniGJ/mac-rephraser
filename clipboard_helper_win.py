@@ -31,6 +31,19 @@ def _send_ctrl_key(char: str) -> None:
         kb.release(char)
 
 
+def read_clipboard() -> str:
+    """Return the current clipboard text, or "" if it can't be read.
+
+    Callers snapshot this before get_selected_text() (which overwrites the
+    clipboard while probing the selection) so the original can be restored
+    after the rephrase paste.
+    """
+    try:
+        return pyperclip.paste()
+    except Exception:
+        return ""
+
+
 def _safe_clipboard_restore(original: str) -> None:
     """Safely restore clipboard content, handling any errors."""
     if not original:
@@ -96,15 +109,27 @@ def get_selected_text() -> str | None:
     return selected_text
 
 
-def paste_text(text: str) -> bool:
+def paste_text(text: str, restore_clipboard: str | None = None) -> bool:
     """
     Replace selected text by copying new text to clipboard and simulating Ctrl+V.
     Returns True on success, False on failure.
+
+    If `restore_clipboard` is given, the user's original clipboard content is put
+    back after the paste keystroke lands, so the rephrase flow does not clobber
+    whatever the user had copied. Restoration is best-effort and never changes
+    the return value.
     """
     pyperclip.copy(text)
     try:
         _send_ctrl_key("v")
-        return True
     except Exception as e:
         log.error(f"Ctrl+V simulation failed: {e}")
         return False
+
+    if restore_clipboard:
+        # Give the target app a moment to consume the Ctrl+V before we swap the
+        # clipboard back, otherwise it could paste the restored (original)
+        # content instead of the rephrased text.
+        time.sleep(0.25)
+        _safe_clipboard_restore(restore_clipboard)
+    return True

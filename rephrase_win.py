@@ -24,7 +24,7 @@ from pynput import keyboard
 from winotify import Notification
 
 from api import rephrase_text, RephraseError
-from clipboard_helper_win import get_selected_text, paste_text
+from clipboard_helper_win import get_selected_text, paste_text, read_clipboard
 from hotkey_release import HOTKEY_RELEASE_TIMEOUT, hotkey_keys_released
 from config import (
     MODELS,
@@ -174,7 +174,7 @@ class RephraseWinApp:
             pystray.Menu.SEPARATOR,
             Item("Test Rephrase", self.test_rephrase),
             Item("Open Logs Folder", self.open_logs),
-            Item("Hotkey: Ctrl+Alt+R", None, enabled=False),
+            Item("Hotkey: Ctrl+Shift+F9", None, enabled=False),
             Item(f"Rephrase v{__version__}", None, enabled=False),
             pystray.Menu.SEPARATOR,
             Item("Quit", self.quit_app),
@@ -248,7 +248,7 @@ class RephraseWinApp:
     # --- Hotkey + workflow ------------------------------------------------------
 
     def start_hotkey_listener(self):
-        """Register the global Ctrl+Alt+R hotkey."""
+        """Register the global Ctrl+Shift+F9 hotkey."""
         DEBOUNCE_SECONDS = 1.0
         last_triggered = [0.0]
 
@@ -258,7 +258,7 @@ class RephraseWinApp:
                 log.debug("Hotkey debounced")
                 return
             last_triggered[0] = current_time
-            log.info("Hotkey Ctrl+Alt+R detected!")
+            log.info("Hotkey Ctrl+Shift+F9 detected!")
 
             if self.is_processing:
                 log.debug("Already processing, ignoring hotkey")
@@ -287,12 +287,11 @@ class RephraseWinApp:
         def on_release(key):
             self._pressed_keys.discard(key)
 
-        # GlobalHotKeys handles the Ctrl-held char translation quirks on
-        # Windows (Ctrl+R arrives as '\x12', not 'r') that a raw Listener
-        # like the Mac version uses would misread. A separate lightweight
-        # Listener tracks which keys are currently held so we can wait for the
-        # hotkey to be released before copying.
-        self.hotkeys = keyboard.GlobalHotKeys({"<ctrl>+<alt>+r": on_hotkey})
+        # GlobalHotKeys parses the combo string and handles the modifier-state
+        # quirks that a raw Listener (like the Mac version) would misread. A
+        # separate lightweight Listener tracks which keys are currently held so
+        # we can wait for the hotkey to be released before copying.
+        self.hotkeys = keyboard.GlobalHotKeys({"<ctrl>+<shift>+<f9>": on_hotkey})
         self.hotkeys.start()
         self.key_listener = keyboard.Listener(on_press=on_press, on_release=on_release)
         self.key_listener.start()
@@ -330,6 +329,11 @@ class RephraseWinApp:
         log.info("Starting rephrase workflow...")
 
         try:
+            # Snapshot the user's clipboard before get_selected_text() probes
+            # the selection (which overwrites the clipboard), so we can restore
+            # it after pasting the rephrased text.
+            original_clipboard = read_clipboard()
+
             log.debug("Getting selected text...")
             selected_text = get_selected_text()
 
@@ -346,7 +350,7 @@ class RephraseWinApp:
             log.info(f"Rephrased ({len(rephrased)} chars): {rephrased[:50]}...")
 
             log.debug("Pasting result...")
-            if paste_text(rephrased):
+            if paste_text(rephrased, restore_clipboard=original_clipboard):
                 log.info("Text replaced successfully")
                 record_rephrase()
                 notify("Rephrase ✓", "Text replaced!")
@@ -372,7 +376,7 @@ class RephraseWinApp:
     def run(self):
         self.start_hotkey_listener()
         self.check_first_run()
-        log.info("App initialized. Hotkey: Ctrl+Alt+R")
+        log.info("App initialized. Hotkey: Ctrl+Shift+F9")
         self.icon.run()
 
 

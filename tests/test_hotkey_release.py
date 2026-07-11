@@ -1,11 +1,9 @@
 """Tests for hotkey-release detection.
 
-The Windows app copies the selection only after Ctrl, Alt, and 'r' are all
-released. Copying while 'r' is still held would overwrite the selected text
-with the letter 'r' (the bug this logic fixes).
+The Windows app copies the selection only after Ctrl, Shift, and F9 are all
+released. Copying while a modifier is still held can interfere with the copy.
 """
 
-from pynput import keyboard
 from pynput.keyboard import Key, KeyCode
 
 from hotkey_release import hotkey_keys_released, HOTKEY_RELEASE_TIMEOUT
@@ -21,29 +19,31 @@ def test_ctrl_still_held_returns_false():
     assert hotkey_keys_released({Key.ctrl_r}) is False
 
 
-def test_alt_still_held_returns_false():
-    assert hotkey_keys_released({Key.alt}) is False
-    assert hotkey_keys_released({Key.alt_l}) is False
-    assert hotkey_keys_released({Key.alt_gr}) is False
+def test_shift_still_held_returns_false():
+    assert hotkey_keys_released({Key.shift}) is False
+    assert hotkey_keys_released({Key.shift_l}) is False
+    assert hotkey_keys_released({Key.shift_r}) is False
 
 
-def test_r_still_held_returns_false():
-    # The exact scenario the user asked about: Ctrl and Alt released, but 'r'
-    # is still down. Must NOT copy yet.
-    assert hotkey_keys_released({KeyCode.from_char("r")}) is False
+def test_f9_still_held_returns_false():
+    # Ctrl and Shift released, but F9 still down. Must NOT copy yet.
+    assert hotkey_keys_released({Key.f9}) is False
 
 
-def test_uppercase_r_still_held_returns_false():
-    assert hotkey_keys_released({KeyCode.from_char("R")}) is False
+def test_f9_raw_keycode_by_vk_returns_false():
+    # On some layouts/drivers pynput reports F9 as a raw KeyCode carrying the
+    # Win32 virtual-key code (0x78) instead of the named Key.f9. It must still
+    # be recognized as held.
+    assert hotkey_keys_released({KeyCode(vk=0x78)}) is False
 
 
-def test_ctrl_translated_r_control_char_returns_false():
-    # While Ctrl is held, Windows reports Ctrl+R as the control char '\x12'.
-    assert hotkey_keys_released({KeyCode.from_char("\x12")}) is False
+def test_other_function_key_vk_does_not_block():
+    # A different function key (F8, vk 0x77) held must NOT be treated as F9.
+    assert hotkey_keys_released({KeyCode(vk=0x77)}) is True
 
 
 def test_full_combo_held_returns_false():
-    assert hotkey_keys_released({Key.ctrl, Key.alt, KeyCode.from_char("r")}) is False
+    assert hotkey_keys_released({Key.ctrl, Key.shift, Key.f9}) is False
 
 
 def test_unrelated_key_held_returns_true():
