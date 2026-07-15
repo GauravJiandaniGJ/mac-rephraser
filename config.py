@@ -5,6 +5,8 @@ import os
 import sys
 from pathlib import Path
 
+from hotkey_validation import DEFAULT_HOTKEY, HotkeyError, validate_hotkey
+
 
 def get_config_dir() -> Path:
     """Platform-specific config directory (macOS/Linux path unchanged)."""
@@ -80,6 +82,10 @@ DEFAULT_CONFIG = {
     "model": "gpt-4o-mini",
     "tone": "rephrase",
     "seniority": "none",
+    # Global hotkey, in pynput's canonical form. Per-machine: the config file is
+    # local, so each system can have its own combo. Windows only for now; the
+    # macOS app still uses its own hard-coded Ctrl+Option+R.
+    "hotkey": DEFAULT_HOTKEY,
 }
 
 
@@ -143,6 +149,35 @@ def set_seniority(seniority: str) -> None:
     config = load_config()
     config["seniority"] = seniority
     save_config(config)
+
+
+def get_hotkey() -> str:
+    """Get the global hotkey in pynput's canonical form.
+
+    Validated on every read: the config file is hand-editable, and an
+    unparseable or dangerous value there (Ctrl+C would make the app trigger
+    itself) must degrade to the default rather than break the app.
+    """
+    stored = load_config().get("hotkey", DEFAULT_HOTKEY)
+    try:
+        return validate_hotkey(stored)
+    except HotkeyError:
+        return DEFAULT_HOTKEY
+
+
+def set_hotkey(hotkey: str) -> None:
+    """Validate and persist a hotkey. Raises HotkeyError if it is not allowed."""
+    config = load_config()
+    config["hotkey"] = validate_hotkey(hotkey)
+    save_config(config)
+
+
+def reset_hotkey() -> str:
+    """Restore the default hotkey. Returns it."""
+    config = load_config()
+    config["hotkey"] = DEFAULT_HOTKEY
+    save_config(config)
+    return DEFAULT_HOTKEY
 
 
 def reload_config() -> dict:
