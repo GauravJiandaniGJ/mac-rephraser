@@ -229,6 +229,8 @@ Two quick steps to finish setup:
 
 2. Enter your OpenAI API key in the next dialog.
 
+Privacy: when you trigger a rephrase, the selected text is sent to OpenAI using your own API key. Nothing else is collected or sent anywhere.
+
 Then select text anywhere and press Ctrl+Option+R to rephrase it." with title "Rephrase Setup" buttons {"Continue"} default button "Continue"
             '''
             try:

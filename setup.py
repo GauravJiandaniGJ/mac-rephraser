@@ -32,6 +32,8 @@ PLIST = {
 
 OPTIONS = {
     "plist": PLIST,
+    # Regenerate with scripts/make_icon.py when changing the design.
+    "iconfile": "assets/Rephrase.icns",
     # Ship these as full packages: their submodules are loaded dynamically
     # (keyring backends, pynput platform backends, openai lazy imports,
     # certifi's bundled CA file) and would be missed by import analysis.

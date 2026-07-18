@@ -74,3 +74,31 @@ def test_onboarding_shows_dialog_then_prompts_for_key(monkeypatch):
     assert len(osascript_calls) == 1
     assert "Welcome to Rephrase" in osascript_calls[0][2]
     app.prompt_api_key.assert_called_once_with(None)
+
+
+def test_onboarding_discloses_openai_data_sharing(monkeypatch):
+    """The welcome dialog must disclose that selected text is sent to OpenAI."""
+    monkeypatch.setattr(rephrase, "get_api_key", lambda: None)
+    monkeypatch.setattr(rephrase.time, "sleep", lambda s: None)
+
+    osascript_calls = []
+    monkeypatch.setattr(
+        rephrase.subprocess,
+        "run",
+        lambda *args, **kwargs: osascript_calls.append(args[0]) or MagicMock(),
+    )
+
+    class InlineThread:
+        def __init__(self, target=None, daemon=None):
+            self.target = target
+
+        def start(self):
+            self.target()
+
+    monkeypatch.setattr(rephrase.threading, "Thread", InlineThread)
+
+    rephrase.RephraseApp.check_first_run(MagicMock())
+
+    dialog_text = osascript_calls[0][2]
+    assert "OpenAI" in dialog_text
+    assert "your own API key" in dialog_text

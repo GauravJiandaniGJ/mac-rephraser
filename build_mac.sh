@@ -9,7 +9,15 @@
 #   ./build_mac.sh
 #   REPHRASE_PYTHON=/path/to/python3 ./build_mac.sh   # override interpreter
 #
-# Output: dist/Rephrase-<version>.dmg
+# Signing (defaults to ad-hoc so colleague builds need no secrets):
+#   REPHRASE_SIGN_IDENTITY="Developer ID Application: Name (TEAMID)" \
+#   REPHRASE_NOTARY_PROFILE=rephrase-notary \
+#   ./build_mac.sh
+#
+# One-time setup for the signed path is documented in PACKAGING.md.
+#
+# Output: dist/Rephrase-<version>.dmg (notarized + stapled when the
+# signing env vars are set)
 
 set -euo pipefail
 
@@ -43,17 +51,45 @@ build-venv/bin/python -m pytest tests/ -v
 echo "==> Running py2app"
 build-venv/bin/python setup.py py2app
 
-# --- Ad-hoc sign (Apple Silicon requires a signature; see PACKAGING.md for
-# --- the Developer ID + notarization upgrade) ---------------------------------
-echo "==> Signing (ad-hoc)"
-codesign --force --deep --sign - dist/Rephrase.app
-codesign --verify --deep dist/Rephrase.app
+# --- Sign ----------------------------------------------------------------------
+# Developer ID + hardened runtime when REPHRASE_SIGN_IDENTITY is set,
+# otherwise ad-hoc (Apple Silicon requires *a* signature to launch at all).
+SIGN_IDENTITY="${REPHRASE_SIGN_IDENTITY:-}"
+if [ -n "$SIGN_IDENTITY" ]; then
+    echo "==> Signing with Developer ID: $SIGN_IDENTITY"
+    codesign --force --deep --options runtime \
+        --entitlements entitlements.plist \
+        --sign "$SIGN_IDENTITY" dist/Rephrase.app
+else
+    echo "==> Signing (ad-hoc - set REPHRASE_SIGN_IDENTITY for a release build)"
+    codesign --force --deep --sign - dist/Rephrase.app
+fi
+codesign --verify --deep --strict dist/Rephrase.app
 
 # --- Package as .dmg -----------------------------------------------------------
 DMG="dist/Rephrase-${VERSION}.dmg"
 echo "==> Creating $DMG"
 hdiutil create -volname "Rephrase" -srcfolder dist/Rephrase.app -ov -format UDZO "$DMG"
 
+# --- Notarize + staple (release builds only) -----------------------------------
+NOTARY_PROFILE="${REPHRASE_NOTARY_PROFILE:-}"
+if [ -n "$NOTARY_PROFILE" ]; then
+    if [ -z "$SIGN_IDENTITY" ]; then
+        echo "ERROR: REPHRASE_NOTARY_PROFILE requires REPHRASE_SIGN_IDENTITY (ad-hoc builds cannot be notarized)" >&2
+        exit 1
+    fi
+    echo "==> Notarizing (profile: $NOTARY_PROFILE)"
+    xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
+    echo "==> Stapling notarization ticket"
+    xcrun stapler staple "$DMG"
+    xcrun stapler validate "$DMG"
+fi
+
 echo ""
 echo "Done: $DMG"
+if [ -n "$NOTARY_PROFILE" ]; then
+    echo "Notarized + stapled - users can double-click to install."
+else
+    echo "Unsigned-for-distribution build: users need the 'Open Anyway' step (INSTALL.md)."
+fi
 echo "Share that file with users. Install steps for them: INSTALL.md"

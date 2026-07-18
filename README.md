@@ -60,7 +60,19 @@ Write → Select → Ctrl+Option+R → Send
 
 ---
 
-## Quick Start
+## Install (no Terminal needed)
+
+**[⬇ Download the latest Rephrase.dmg](https://github.com/gauravjiandani/mac-rephraser/releases/latest)** — Apple Silicon Macs, macOS 12+.
+
+1. Open the dmg and drag **Rephrase** to Applications.
+2. Launch it, then follow the setup dialogs: grant **Accessibility** and **Input Monitoring**, and paste your own OpenAI API key ([get one here](https://platform.openai.com/api-keys)).
+3. Select text anywhere → **Ctrl+Option+R**.
+
+The app is free and bring-your-own-key: your selected text goes straight from your Mac to OpenAI using your key — no middleman server, nothing collected. Full steps with screenshots: [INSTALL.md](INSTALL.md).
+
+---
+
+## Run from source (developers)
 
 ### Prerequisites
 
