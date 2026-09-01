@@ -1,0 +1,43 @@
+name: Claude Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Review this pull request. This is a Python macOS menubar
+            utility that rephrases the user's selected text through the
+            OpenAI API.
+
+            Focus on, in this order:
+            1. Anything that could leak the user's API key or the text
+               they selected — into logs, files, or the network
+            2. Clipboard save and restore: the user's original clipboard
+               contents must always come back, including on failure
+            3. Blocking calls on the UI thread, and API calls with no
+               timeout
+            4. Unhandled failures: no network, invalid key, rate limit,
+               empty selection
+            5. Accessibility-permission edge cases
+
+            Be concrete: name the line and say what the user would
+            actually see go wrong. Skip style and formatting nits.
+            If the diff is fine, say so in one sentence.
+
+            Do not modify any files. Review only.
+          claude_args: |
+            --max-turns 8
+            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment"
