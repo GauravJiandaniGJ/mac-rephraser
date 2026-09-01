@@ -1,0 +1,49 @@
+name: Claude Autopilot
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  autopilot:
+    if: github.event.label.name == 'autopilot'
+    runs-on: macos-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt && pip install pytest
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Implement the issue that triggered this run.
+            Follow the conventions in CLAUDE.md.
+
+            Process:
+            1. Create a branch named autopilot/<short-slug>
+            2. Make the smallest change that satisfies the issue's
+               "Done when" line
+            3. Add or update a test in tests/ that proves it
+            4. Run: pytest -q
+            5. If tests fail, read the failure and fix it.
+               Maximum 3 attempts.
+            6. Green? Open a pull request containing the diff and the
+               pytest output
+            7. Still red after 3 attempts? Open a DRAFT pull request
+               titled "needs human: <reason>" explaining exactly what
+               blocked you. Never claim success you cannot prove.
+            8. Comment on the issue with the PR link
+
+            Never edit anything under .github/workflows/.
+            If you must touch keychain_helper.py, say so prominently
+            at the top of the PR body.
+          claude_args: |
+            --max-turns 25
