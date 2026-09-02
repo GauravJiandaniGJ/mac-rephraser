@@ -238,3 +238,6 @@ MIT © [Gaurav Jiandani](https://gauravjiandani.com)
 - GitHub: [@gauravjiandani](https://github.com/gauravjiandani)
 
 Built with ☕ and frustration at copy-pasting to ChatGPT.
+
+
+<!-- Security scan triggered at 2026-09-02 06:50:24 -->
